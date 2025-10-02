@@ -1,8 +1,5 @@
 {
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "env": {
-    "VITE_USE_MOCK": "true"
-  }
+  "installCommand": "npm install"
 }
