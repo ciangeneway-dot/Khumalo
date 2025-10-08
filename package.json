@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:api": "echo \"Use Azure Functions build in CI/CD\"",
+    "start:api": "func start --typescript --prefix api"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

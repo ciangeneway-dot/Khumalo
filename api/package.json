@@ -1,0 +1,19 @@
+{
+  "name": "khumalo-api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "func start --typescript"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}
+
+

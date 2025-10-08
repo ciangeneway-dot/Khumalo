@@ -52,33 +52,57 @@ VITE_AZURE_OPENAI_API_VERSION=2024-12-01-preview
 npm run dev
 ```
 
-5. Open http://localhost:5173 and sign in with:
-   - Email: `doctor@hospital.com`
-   - Password: `demo1234`
+5. Open http://localhost:5173 and sign in with your own credentials (mock accepts any non-empty email/password in local mode).
 
 ## Demo Credentials
 
-- **Email**: doctor@hospital.com
-- **Password**: demo1234
+Removed. In mock mode you can use any non-empty email/password to sign in.
 
 ## Deployment
 
-### Vercel (Recommended)
+### Azure Static Web Apps + Azure Functions (Recommended)
 
-1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard:
-   - `VITE_AZURE_OPENAI_ENDPOINT`
-   - `VITE_AZURE_OPENAI_API_KEY`
-   - `VITE_AZURE_OPENAI_DEPLOYMENT`
-   - `VITE_AZURE_OPENAI_API_VERSION`
-3. Deploy automatically on push to main branch
+This project is ready to run fully on Microsoft Azure:
 
-### Manual Build
+- Frontend: Azure Static Web Apps serves the React SPA.
+- API: Azure Functions (in the `api/` folder) proxies Azure OpenAI via `/api/openai/summary` so keys never reach the browser.
+
+#### 1) Provision Azure resources
+
+- Create an Azure Static Web App (link to a GitHub repo or local CI).
+- Ensure a Functions backend is enabled or create a Functions App using the SWA workflow.
+
+#### 2) Configure environment variables (Azure Functions)
+
+Set these on the Functions App (or SWA API) application settings:
+
+- `AZURE_OPENAI_ENDPOINT`: your Azure OpenAI endpoint (e.g., `https://YOUR_RESOURCE.openai.azure.com`)
+- `AZURE_OPENAI_API_KEY`: your Azure OpenAI API key
+- `AZURE_OPENAI_DEPLOYMENT`: your deployment name (e.g., `gpt-4o-mini`)
+- `AZURE_OPENAI_API_VERSION`: optional, default `2025-04-01-preview`
+
+You do NOT need to expose these to the frontend. The client calls `/api/openai/summary` which is secured server-side.
+
+#### 3) Configure SPA routing
+
+`staticwebapp.config.json` is included to route SPA paths to `index.html` and allow `/api/*` passthrough.
+
+#### 4) Build and deploy
+
+- Configure SWA to build the frontend using `npm run build` with output folder `dist`.
+- Set the API location to `api` (TypeScript Functions supported by SWA build or your CI).
+
+### Local development with Azure Functions
 
 ```bash
-npm run build
-npm run preview
+npm install
+# Frontend
+npm run dev
+# API (requires Azure Functions Core Tools)
+npm run start:api
 ```
+
+Set Functions local settings (e.g., `local.settings.json`, not committed) with the same keys as above.
 
 ## AI Features
 
