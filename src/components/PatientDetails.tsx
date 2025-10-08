@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import type { Patient, Document, AISummary } from '../lib/supabase';
+import { getDocuments, getAISummaries, createAISummary, type Patient, type Document, type AISummary } from '../lib/azure-database';
 import { useAuth } from '../contexts/AuthContext';
 import { generatePatientSummary } from '../lib/ai';
 import { DocumentUpload } from './DocumentUpload';
@@ -20,34 +19,29 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
 
   const loadDocuments = async () => {
     setLoadingDocs(true);
-    const { data, error } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('patient_id', patient.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
+    try {
+      const data = await getDocuments(patient.rowKey);
       setDocuments(data);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    } finally {
+      setLoadingDocs(false);
     }
-    setLoadingDocs(false);
   };
 
   const loadSummaries = async () => {
-    const { data, error } = await supabase
-      .from('ai_summaries')
-      .select('*')
-      .eq('patient_id', patient.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
+    try {
+      const data = await getAISummaries(patient.rowKey);
       setSummaries(data);
+    } catch (error) {
+      console.error('Error loading summaries:', error);
     }
   };
 
   useEffect(() => {
     loadDocuments();
     loadSummaries();
-  }, [patient.id]);
+  }, [patient.rowKey]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -77,21 +71,22 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
     if (!user) return;
 
     setGeneratingSummary(true);
-    const summaryText = await generatePatientSummary({ patient, documents });
+    try {
+      const summaryText = await generatePatientSummary({ patient, documents });
 
-    const { error } = await supabase
-      .from('ai_summaries')
-      .insert({
-        patient_id: patient.id,
-        summary_text: summaryText,
-        generated_by: user.id
+      await createAISummary({
+        patientId: patient.rowKey,
+        summaryText: summaryText,
+        generatedBy: user.id,
+        documentIds: documents.map(d => d.rowKey).join(',')
       });
 
-    if (!error) {
       await loadSummaries();
+    } catch (error) {
+      console.error('Error generating summary:', error);
+    } finally {
+      setGeneratingSummary(false);
     }
-
-    setGeneratingSummary(false);
   };
 
   const calculateAge = (dob: string) => {
@@ -114,14 +109,14 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
     <div className="patient-details">
       <div className="patient-header">
         <div className="patient-avatar-large">
-          {patient.first_name[0]}{patient.last_name[0]}
+          {patient.firstName[0]}{patient.lastName[0]}
         </div>
         <div className="patient-header-info">
-          <h2>{patient.first_name} {patient.last_name}</h2>
+          <h2>{patient.firstName} {patient.lastName}</h2>
           <div className="patient-metadata">
-            <span>MRN: {patient.medical_record_number}</span>
-            <span>DOB: {formatDate(patient.date_of_birth)}</span>
-            <span>Age: {calculateAge(patient.date_of_birth)} years</span>
+            <span>MRN: {patient.medicalRecordNumber}</span>
+            <span>DOB: {formatDate(patient.dateOfBirth)}</span>
+            <span>Age: {calculateAge(patient.dateOfBirth)} years</span>
           </div>
           {patient.email && <div className="patient-contact">📧 {patient.email}</div>}
           {patient.phone && <div className="patient-contact">📞 {patient.phone}</div>}
@@ -147,11 +142,11 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
             </div>
           ) : (
             summaries.map((summary) => (
-              <div key={summary.id} className="summary-card">
+              <div key={summary.rowKey} className="summary-card">
                 <div className="summary-header">
-                  <span className="summary-date">{formatDateTime(summary.created_at)}</span>
+                  <span className="summary-date">{formatDateTime(summary.createdAt)}</span>
                 </div>
-                <pre className="summary-text">{summary.summary_text}</pre>
+                <pre className="summary-text">{summary.summaryText}</pre>
               </div>
             ))
           )}
@@ -188,12 +183,12 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
               </thead>
               <tbody>
                 {documents.map((doc) => (
-                  <tr key={doc.id}>
-                    <td className="doc-filename">📄 {doc.file_name}</td>
-                    <td>{doc.file_type}</td>
-                    <td>{formatFileSize(doc.file_size)}</td>
+                  <tr key={doc.rowKey}>
+                    <td className="doc-filename">📄 {doc.fileName}</td>
+                    <td>{doc.fileType}</td>
+                    <td>{formatFileSize(doc.fileSize)}</td>
                     <td>{doc.description || '-'}</td>
-                    <td>{formatDateTime(doc.created_at)}</td>
+                    <td>{formatDateTime(doc.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,7 +199,7 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
 
       {showUploadModal && (
         <DocumentUpload
-          patientId={patient.id}
+          patientId={patient.rowKey}
           onClose={() => setShowUploadModal(false)}
           onDocumentUploaded={handleDocumentUploaded}
         />

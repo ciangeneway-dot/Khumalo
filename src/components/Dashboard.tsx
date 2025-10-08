@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import type { Patient } from '../lib/supabase';
+import { getPatients, initializeTable, type Patient } from '../lib/azure-database';
 import { PatientList } from './PatientList';
 import { PatientDetails } from './PatientDetails';
 import { NewPatientModal } from './NewPatientModal';
@@ -15,15 +14,15 @@ export function Dashboard() {
 
   const loadPatients = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('patients')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
+    try {
+      await initializeTable();
+      const data = await getPatients();
       setPatients(data);
+    } catch (error) {
+      console.error('Error loading patients:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

@@ -1,60 +1,101 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { 
+  msalInstance, 
+  initializeMsal, 
+  login, 
+  logout, 
+  getCurrentUser, 
+  isAuthenticated,
+  type User 
+} from '../lib/azure-auth';
 
 type AuthContextType = {
   user: User | null;
-  session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  isAuthenticated: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
-      const current = data.session;
-      setSession(current);
-      setUser(current?.user ?? null);
-      setLoading(false);
-    });
+    const initializeAuth = async () => {
+      try {
+        await initializeMsal();
+        
+        // Check if user is already logged in
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        }
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((
-      _event: string,
-      nextSession: Session | null
-    ) => {
-      (async () => {
-        setSession(nextSession);
-        setUser(nextSession?.user ?? null);
-      })();
-    });
+    initializeAuth();
 
-    return () => subscription.unsubscribe();
+    // Listen for account changes
+    const handleAccountChange = () => {
+      const currentUser = getCurrentUser();
+      setUser(currentUser);
+    };
+
+    msalInstance.addEventCallback((event) => {
+      if (event.eventType === 'msal:loginSuccess' || event.eventType === 'msal:logoutSuccess') {
+        handleAccountChange();
+      }
+    });
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
-  };
-
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error };
+  const signIn = async () => {
+    try {
+      setLoading(true);
+      const result = await login();
+      if (result) {
+        const currentUser = getCurrentUser();
+        setUser(currentUser);
+        return { error: null };
+      } else {
+        return { error: new Error('Login failed') };
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { error: error instanceof Error ? error : new Error('Unknown error') };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      setLoading(true);
+      await logout();
+      setUser(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const authValue: AuthContextType = {
+    user,
+    loading,
+    signIn,
+    signOut,
+    isAuthenticated: isAuthenticated(),
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );

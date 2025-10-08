@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { createPatient } from '../lib/azure-database';
 import { useAuth } from '../contexts/AuthContext';
 
 type NewPatientModalProps = {
@@ -10,13 +10,13 @@ type NewPatientModalProps = {
 export function NewPatientModal({ onClose, onPatientCreated }: NewPatientModalProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    date_of_birth: '',
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
     email: '',
     phone: '',
     address: '',
-    medical_record_number: ''
+    medicalRecordNumber: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,21 +28,22 @@ export function NewPatientModal({ onClose, onPatientCreated }: NewPatientModalPr
     setError('');
     setLoading(true);
 
-    const { error } = await supabase
-      .from('patients')
-      .insert({
-        ...formData,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        address: formData.address || null,
-        created_by: user.id
+    try {
+      await createPatient({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        dateOfBirth: formData.dateOfBirth,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        medicalRecordNumber: formData.medicalRecordNumber,
+        createdBy: user.id
       });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
       onPatientCreated();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to create patient');
+      setLoading(false);
     }
   };
 
@@ -70,12 +71,12 @@ export function NewPatientModal({ onClose, onPatientCreated }: NewPatientModalPr
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="first_name">First Name *</label>
+              <label htmlFor="firstName">First Name *</label>
               <input
-                id="first_name"
-                name="first_name"
+                id="firstName"
+                name="firstName"
                 type="text"
-                value={formData.first_name}
+                value={formData.firstName}
                 onChange={handleChange}
                 required
                 disabled={loading}
@@ -83,12 +84,12 @@ export function NewPatientModal({ onClose, onPatientCreated }: NewPatientModalPr
             </div>
 
             <div className="form-group">
-              <label htmlFor="last_name">Last Name *</label>
+              <label htmlFor="lastName">Last Name *</label>
               <input
-                id="last_name"
-                name="last_name"
+                id="lastName"
+                name="lastName"
                 type="text"
-                value={formData.last_name}
+                value={formData.lastName}
                 onChange={handleChange}
                 required
                 disabled={loading}
@@ -98,12 +99,12 @@ export function NewPatientModal({ onClose, onPatientCreated }: NewPatientModalPr
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="date_of_birth">Date of Birth *</label>
+              <label htmlFor="dateOfBirth">Date of Birth *</label>
               <input
-                id="date_of_birth"
-                name="date_of_birth"
+                id="dateOfBirth"
+                name="dateOfBirth"
                 type="date"
-                value={formData.date_of_birth}
+                value={formData.dateOfBirth}
                 onChange={handleChange}
                 required
                 disabled={loading}
@@ -111,12 +112,12 @@ export function NewPatientModal({ onClose, onPatientCreated }: NewPatientModalPr
             </div>
 
             <div className="form-group">
-              <label htmlFor="medical_record_number">Medical Record Number *</label>
+              <label htmlFor="medicalRecordNumber">Medical Record Number *</label>
               <input
-                id="medical_record_number"
-                name="medical_record_number"
+                id="medicalRecordNumber"
+                name="medicalRecordNumber"
                 type="text"
-                value={formData.medical_record_number}
+                value={formData.medicalRecordNumber}
                 onChange={handleChange}
                 placeholder="MRN-XXXXX"
                 required

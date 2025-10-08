@@ -1,4 +1,4 @@
-import type { Patient } from '../lib/supabase';
+import type { Patient } from '../lib/azure-database';
 
 type PatientListProps = {
   patients: Patient[];
@@ -36,22 +36,22 @@ export function PatientList({ patients, selectedPatient, onSelectPatient, loadin
     <div className="patient-list">
       {patients.map((patient) => (
         <div
-          key={patient.id}
-          className={`patient-item ${selectedPatient?.id === patient.id ? 'active' : ''}`}
+          key={patient.rowKey}
+          className={`patient-item ${selectedPatient?.rowKey === patient.rowKey ? 'active' : ''}`}
           onClick={() => onSelectPatient(patient)}
         >
           <div className="patient-avatar">
-            {patient.first_name[0]}{patient.last_name[0]}
+            {patient.firstName[0]}{patient.lastName[0]}
           </div>
           <div className="patient-info">
             <div className="patient-name">
-              {patient.first_name} {patient.last_name}
+              {patient.firstName} {patient.lastName}
             </div>
             <div className="patient-meta">
-              MRN: {patient.medical_record_number}
+              MRN: {patient.medicalRecordNumber}
             </div>
             <div className="patient-meta">
-              DOB: {formatDate(patient.date_of_birth)}
+              DOB: {formatDate(patient.dateOfBirth)}
             </div>
           </div>
         </div>

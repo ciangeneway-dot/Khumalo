@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginForm } from './components/LoginForm';
 import { Dashboard } from './components/Dashboard';
+import { initializeMsal } from './lib/azure-auth';
 import './App.css';
 
 function AppContent() {

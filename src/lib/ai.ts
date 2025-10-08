@@ -1,15 +1,21 @@
-import type { Patient, Document } from './supabase';
+import type { Patient, Document } from './azure-database';
+import { processDocument, extractMedicalData, validateMedicalDocument } from './document-processor';
 
 type GenerateSummaryParams = {
   patient: Patient;
   documents: Document[];
+  documentTexts?: string[]; // Pre-processed document texts
 };
 
 async function extractDocumentText(document: Document): Promise<string> {
-  // For demo purposes, simulate document content based on file type and name
-  // In a real implementation, you'd use libraries like pdf-parse, mammoth, etc.
+  // Check if we have pre-processed text
+  if (document.processedText) {
+    return document.processedText;
+  }
   
-  const fileName = document.file_name.toLowerCase();
+  // For demo purposes, simulate document content based on file type and name
+  // In production, this would use the document processor
+  const fileName = document.fileName.toLowerCase();
   
   if (fileName.includes('cbc') || fileName.includes('blood')) {
     return `Complete Blood Count Results:
@@ -86,17 +92,17 @@ function buildClinicalPrompt(patient: Patient, documents: Document[], documentCo
 
   const docSections = documents
     .slice()
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map((d, i) => `Document ${i + 1}: ${d.file_name} (${formatDateTime(d.created_at)})
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map((d, i) => `Document ${i + 1}: ${d.fileName} (${formatDateTime(d.createdAt)})
 ${documentContents[i] || 'Content not available'}`);
 
   return `Create a comprehensive clinical summary for a doctor based on the patient's medical documents.
 
 Patient Information:
-- Name: ${patient.first_name} ${patient.last_name}
-- Medical Record Number: ${patient.medical_record_number}
-- Date of Birth: ${formatDate(patient.date_of_birth)}
-- Age: ${calculateAge(patient.date_of_birth)} years${patient.email ? `\n- Email: ${patient.email}` : ''}${patient.phone ? `\n- Phone: ${patient.phone}` : ''}${patient.address ? `\n- Address: ${patient.address}` : ''}
+- Name: ${patient.firstName} ${patient.lastName}
+- Medical Record Number: ${patient.medicalRecordNumber}
+- Date of Birth: ${formatDate(patient.dateOfBirth)}
+- Age: ${calculateAge(patient.dateOfBirth)} years${patient.email ? `\n- Email: ${patient.email}` : ''}${patient.phone ? `\n- Phone: ${patient.phone}` : ''}${patient.address ? `\n- Address: ${patient.address}` : ''}
 
 Medical Documents (${documents.length} total):
 ${docSections.join('\n\n')}
@@ -199,7 +205,7 @@ export async function generatePatientSummary({ patient, documents }: GenerateSum
   };
 
   const byType: Record<string, Document[]> = documents.reduce((acc, d) => {
-    const key = d.file_type || 'unknown';
+    const key = d.fileType || 'unknown';
     (acc[key] ||= []).push(d);
     return acc;
   }, {} as Record<string, Document[]>);
@@ -207,17 +213,17 @@ export async function generatePatientSummary({ patient, documents }: GenerateSum
   const docLines: string[] = [];
   documents
     .slice()
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .forEach((d, idx) => {
-      docLines.push(`  ${idx + 1}. ${d.file_name} (${d.file_type || 'unknown'}, ${formatFileSize(d.file_size)}) — uploaded ${formatDateTime(d.created_at)}${d.description ? ` — ${d.description}` : ''}`);
+      docLines.push(`  ${idx + 1}. ${d.fileName} (${d.fileType || 'unknown'}, ${formatFileSize(d.fileSize)}) — uploaded ${formatDateTime(d.createdAt)}${d.description ? ` — ${d.description}` : ''}`);
     });
 
-  return `Patient Summary for ${patient.first_name} ${patient.last_name}
+  return `Patient Summary for ${patient.firstName} ${patient.lastName}
 
 Demographics:
-- Medical Record Number: ${patient.medical_record_number}
-- Date of Birth: ${formatDate(patient.date_of_birth)}
-- Age: ${calculateAge(patient.date_of_birth)} years
+- Medical Record Number: ${patient.medicalRecordNumber}
+- Date of Birth: ${formatDate(patient.dateOfBirth)}
+- Age: ${calculateAge(patient.dateOfBirth)} years
 ${patient.email ? `- Email: ${patient.email}
 ` : ''}${patient.phone ? `- Phone: ${patient.phone}
 ` : ''}${patient.address ? `- Address: ${patient.address}
@@ -225,7 +231,7 @@ ${patient.email ? `- Email: ${patient.email}
 
 Documents Overview:
 - Total Documents: ${documents.length}
-${documents.length > 0 ? `- Most Recent Upload: ${formatDateTime(documents[0].created_at)}
+${documents.length > 0 ? `- Most Recent Upload: ${formatDateTime(documents[0].createdAt)}
 ` : ''}${documents.length > 0 ? `- Document Types: ${Object.entries(byType).map(([t, arr]) => `${t} (${arr.length})`).join(', ')}
 ` : ''}
 

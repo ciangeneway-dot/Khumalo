@@ -2,18 +2,15 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignIn = async () => {
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await signIn();
 
     if (error) {
       setError(error.message);
@@ -32,53 +29,70 @@ export function LoginForm() {
               <path d="M20 10V30M10 20H30" stroke="white" strokeWidth="3" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1>Healthcare Portal</h1>
-          <p>Patient Document Management System</p>
+          <h1>Medical Practice Portal</h1>
+          <p>Secure Patient Document Management System</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
+        <div className="login-content">
           {error && (
             <div className="error-message">
               {error}
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="healthcare.professional@hospital.com"
-              required
-              disabled={loading}
-            />
+          <div className="login-description">
+            <h3>Welcome to Your Medical Practice Portal</h3>
+            <p>Access your secure patient management system with enterprise-grade authentication.</p>
+            
+            <div className="features-list">
+              <div className="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>HIPAA Compliant Security</span>
+              </div>
+              <div className="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>AI-Powered Document Analysis</span>
+              </div>
+              <div className="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>Secure Cloud Storage</span>
+              </div>
+              <div className="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>Enterprise Authentication</span>
+              </div>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Signing In...' : 'Sign In'}
+          <button 
+            onClick={handleSignIn} 
+            className="btn-primary btn-large" 
+            disabled={loading}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="10,17 15,12 10,7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {loading ? 'Signing In...' : 'Sign In with Azure AD'}
           </button>
 
-          <div className="demo-credentials">
-            <p><strong>Demo Credentials:</strong></p>
-            <p>Email: doctor@hospital.com</p>
-            <p>Password: demo1234</p>
+          <div className="security-notice">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Your data is protected with enterprise-grade security and HIPAA compliance</span>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
